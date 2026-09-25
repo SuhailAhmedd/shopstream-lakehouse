@@ -1,0 +1,25 @@
+{
+  "name": "shopstream_lakeflow",
+  "id": "49803253-92bd-459c-b939-153129ea409c",
+  "state": "RUNNING",
+  "creator_user_name": "suhailahmed030803@gmail.com",
+  "run_as_user_name": "suhailahmed030803@gmail.com",
+  "configuration": {
+    "photon": true,
+    "serverless": true,
+    "channel": "CURRENT",
+    "pipelineType": "WORKSPACE"
+  },
+  "storage": {
+    "catalog": "shopstream",
+    "schema": "core"
+  },
+  "libraries": [
+    {
+      "type": "glob",
+      "include": "/Workspace/Users/suhailahmed030803@gmail.com/shopstream_lakeflow/transformations/**"
+    }
+  ],
+  "clusters": [],
+  "note": "Exported from Databricks workspace. The glob path in libraries[0].include must be updated to match your workspace path when importing. The pipeline uses Photon and Serverless compute."
+}

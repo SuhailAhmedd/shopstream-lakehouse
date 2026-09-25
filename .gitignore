@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Databricks
+.databricks/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets and credentials
+*.env
+*.secret
+*.key
+*.pem
+*.token
+
+# Auto Loader checkpoints (runtime state, not source code)
+checkpoints/
+_checkpoints/
+
+# Local data downloads
+data/raw/*.csv
+data/raw/*.json
+
+# IDE
+.vscode/
+.idea/
