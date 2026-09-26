@@ -144,16 +144,22 @@ databricks pipelines create --json-file pipeline-config/shopstream_lakeflow.json
 8. Add the transformation files as libraries (glob pattern: `**/transformations/**/*.py`)
 9. Click **Start**
 
-## Step 8: Configure the Dashboard
+## Step 8: Import the Dashboard
 
-The dashboard configuration is in `dashboard/ShopStream_Sales_dashboard.json`.
+The full dashboard is exported in `dashboard/ShopStream_Sales.lvdash.json` (datasets, filters and all widgets).
 
 1. Go to **Dashboards** in the Databricks sidebar
-2. Click **Create Dashboard**
-3. Import the JSON file or recreate manually:
-   * Add two datasets: `shopstream.core.gold_category_performance` and `shopstream.core.gold_daily_revenue`
-   * Add a page with GRID_V1 layout
-4. **Note:** The current dashboard has datasets registered but no visualizations placed. Add charts/widgets to complete it.
+2. Click the arrow next to **Create dashboard** and choose **Import dashboard from file**
+3. Select `dashboard/ShopStream_Sales.lvdash.json`, then attach a SQL warehouse if prompted
+4. Run `dashboard/kpi_checks.sql` in the SQL editor and compare it with the KPI cards
+5. Click **Publish**, then **Share** to grant access
+
+To replace an existing `ShopStream Sales` dashboard in place instead of creating a copy, use the Databricks CLI:
+
+```bash
+databricks workspace import "/Workspace/Users/<you>/ShopStream Sales.lvdash.json" \
+  --file dashboard/ShopStream_Sales.lvdash.json --format AUTO --overwrite
+```
 
 ## Verification
 

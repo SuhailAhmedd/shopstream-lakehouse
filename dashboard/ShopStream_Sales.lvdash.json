@@ -1,54 +1,1133 @@
 {
   "datasets": [
     {
-      "name": "13d4aeb0",
-      "displayName": "gold_category_performance",
-      "config": {
-        "version": "1.1",
-        "source": "shopstream.core.gold_category_performance",
-        "dimensions": [
-          {
-            "expr": "source.*"
-          }
-        ],
-        "measures": [
-          {
-            "name": "count",
-            "expr": "COUNT(*)",
-            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
-            "displayName": "Count"
-          }
-        ]
-      }
+      "name": "ds_daily_revenue",
+      "displayName": "Daily revenue (gold_daily_revenue)",
+      "queryLines": [
+        "SELECT order_date, orders, units_sold, revenue\n",
+        "FROM shopstream.core.gold_daily_revenue"
+      ]
     },
     {
-      "name": "3623a364",
-      "displayName": "gold_daily_revenue",
-      "config": {
-        "version": "1.1",
-        "source": "shopstream.core.gold_daily_revenue",
-        "dimensions": [
-          {
-            "expr": "source.*"
-          }
-        ],
-        "measures": [
-          {
-            "name": "count",
-            "expr": "COUNT(*)",
-            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
-            "displayName": "Count"
-          }
-        ]
-      }
+      "name": "ds_category_performance",
+      "displayName": "Category performance (gold_category_performance)",
+      "queryLines": [
+        "SELECT category, orders, units_sold, revenue, gross_margin\n",
+        "FROM shopstream.core.gold_category_performance"
+      ]
+    },
+    {
+      "name": "ds_customer_ltv",
+      "displayName": "Customer lifetime value (gold_customer_ltv)",
+      "queryLines": [
+        "SELECT customer_id, name, country, signup_channel, lifetime_orders, lifetime_revenue\n",
+        "FROM shopstream.core.gold_customer_ltv"
+      ]
+    },
+    {
+      "name": "ds_top_customers",
+      "displayName": "Top 10 customers (gold_customer_ltv)",
+      "queryLines": [
+        "SELECT CONCAT(name, ' (', customer_id, ')') AS customer, country, lifetime_orders, lifetime_revenue\n",
+        "FROM shopstream.core.gold_customer_ltv\n",
+        "ORDER BY lifetime_revenue DESC\n",
+        "LIMIT 10"
+      ]
     }
   ],
   "pages": [
     {
-      "name": "34a0bb82",
-      "displayName": "new",
+      "name": "shopstream_sales",
+      "displayName": "ShopStream Sales",
       "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1"
+      "layout": [
+        {
+          "widget": {
+            "name": "txt_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# ShopStream Sales\n",
+                "Completed orders, January to June 2026. Source: `shopstream.core` Gold tables."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "flt_order_date",
+            "queries": [
+              {
+                "name": "f_ds_daily_revenue_order_date",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "order_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "order_date",
+                    "displayName": "Order date",
+                    "queryName": "f_ds_daily_revenue_order_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Order date"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "flt_category",
+            "queries": [
+              {
+                "name": "f_ds_category_performance_category",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "category_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "category",
+                    "displayName": "Category",
+                    "queryName": "f_ds_category_performance_category"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Category"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(revenue)",
+                  "displayName": "Total Revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "sum(orders)",
+                      "expression": "SUM(`orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(orders)",
+                  "displayName": "Total Orders",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "hideGroupSeparator": false,
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Orders"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_units_sold",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "sum(units_sold)",
+                      "expression": "SUM(`units_sold`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(units_sold)",
+                  "displayName": "Units Sold",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "hideGroupSeparator": false,
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Units Sold"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_order_value",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "aov",
+                      "expression": "SUM(`revenue`) / SUM(`orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "aov",
+                  "displayName": "Avg Order Value",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Order Value"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_gross_margin",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "sum(gross_margin)",
+                      "expression": "SUM(`gross_margin`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(gross_margin)",
+                  "displayName": "Gross Margin",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Gross Margin"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_gross_margin_pct",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "margin_pct",
+                      "expression": "SUM(`gross_margin`) / SUM(`revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "margin_pct",
+                  "displayName": "Gross Margin %",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Gross Margin %"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 4,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "txt_kpi_note",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Revenue, orders, units and average order value follow the **Order date** filter. Gross margin follows the **Category** filter, because `gold_category_performance` has no date column."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "txt_section_revenue",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Revenue Overview"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_daily_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_revenue",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Order date"
+                },
+                "y": {
+                  "fieldName": "sum(revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Daily Revenue"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_revenue_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Category"
+                },
+                "y": {
+                  "fieldName": "sum(revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Category"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 9,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "txt_section_category",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Category Performance"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_revenue_margin_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    },
+                    {
+                      "name": "sum(gross_margin)",
+                      "expression": "SUM(`gross_margin`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "category",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Category"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(revenue)",
+                      "displayName": "Revenue"
+                    },
+                    {
+                      "fieldName": "sum(gross_margin)",
+                      "displayName": "Gross margin"
+                    }
+                  ]
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue and Gross Margin by Category"
+              },
+              "mark": {
+                "layout": "group"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_margin_pct_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_category_performance",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "margin_pct",
+                      "expression": "SUM(`gross_margin`) / SUM(`revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Category"
+                },
+                "y": {
+                  "fieldName": "margin_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Gross margin %",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Gross Margin % by Category"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 16,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "txt_section_customers",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Customer Analytics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_customers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_customer_ltv",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "customers",
+                      "expression": "COUNT(DISTINCT `customer_id`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "customers",
+                  "displayName": "Customers with Completed Orders",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "hideGroupSeparator": false,
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Customers with Completed Orders"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_ltv",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_customer_ltv",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "avg_ltv",
+                      "expression": "AVG(`lifetime_revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_ltv",
+                  "displayName": "Avg Lifetime Revenue per Customer",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Lifetime Revenue per Customer"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 23,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_lifetime_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_customer_ltv",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "avg_orders",
+                      "expression": "AVG(`lifetime_orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_orders",
+                  "displayName": "Avg Lifetime Orders per Customer",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "hideGroupSeparator": false,
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Lifetime Orders per Customer"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 23,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_top_customers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_top_customers",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "customer",
+                      "expression": "`customer`"
+                    },
+                    {
+                      "name": "sum(lifetime_revenue)",
+                      "expression": "SUM(`lifetime_revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(lifetime_revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Lifetime revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "customer",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": "Customer"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Customers by Lifetime Revenue"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 3,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_ltv_by_channel",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_customer_ltv",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "signup_channel",
+                      "expression": "`signup_channel`"
+                    },
+                    {
+                      "name": "avg(lifetime_revenue)",
+                      "expression": "AVG(`lifetime_revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "signup_channel",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Signup channel"
+                },
+                "y": {
+                  "fieldName": "avg(lifetime_revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Avg lifetime revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Lifetime Revenue by Signup Channel"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 26,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_ltv_by_country",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_customer_ltv",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "country",
+                      "expression": "`country`"
+                    },
+                    {
+                      "name": "sum(lifetime_revenue)",
+                      "expression": "SUM(`lifetime_revenue`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Country"
+                },
+                "y": {
+                  "fieldName": "sum(lifetime_revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Lifetime revenue",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lifetime Revenue by Country"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 30,
+            "width": 3,
+            "height": 4
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {
