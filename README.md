@@ -532,6 +532,4 @@ shopstream-lakehouse/
 
 ---
 
-## License
 
-This project is provided for educational and portfolio purposes.
