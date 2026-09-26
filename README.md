@@ -2,6 +2,12 @@
 
 An end-to-end e-commerce analytics pipeline built entirely on the Databricks Lakehouse platform. ShopStream ingests batch CSV data and live streaming JSON events, processes them through a medallion architecture (Bronze → Silver → Gold), and serves the results through Databricks SQL dashboards and a Lakeflow Spark Declarative Pipeline.
 
+<p align="center">
+  <img src="docs/images/databricks-lakehouse-architecture.png" alt="ShopStream Databricks Lakehouse architecture: batch CSV files via COPY INTO and streaming JSON events via Auto Loader feed bronze, silver and gold Delta tables, orchestrated by a Databricks Job and served to a dashboard" width="900">
+</p>
+
+<p align="center"><em>Batch and streaming sources land in one governed lakehouse, flow through the medallion layers, and end on a live sales dashboard.</em></p>
+
 ---
 
 ## Table of Contents
@@ -44,6 +50,14 @@ ShopStream is a simulated e-commerce order analytics platform. It processes orde
 ---
 
 ## Architecture
+
+### One Lakehouse, Two Ways In
+
+Historical CSVs arrive in bulk through `COPY INTO`, while live order events stream in every few seconds through Auto Loader. Both paths write to the same catalog and the same bronze tables, so everything downstream (silver, gold, and the dashboard) is shared.
+
+<p align="center">
+  <img src="docs/images/batch-and-streaming-architecture.png" alt="Batch and streaming architecture: historical CSVs go through the raw volume and COPY INTO into bronze, live JSON events go through the events volume and Auto Loader into the same bronze tables, then silver, gold and the sales dashboard" width="850">
+</p>
 
 ### Data Flow
 
@@ -160,6 +174,12 @@ COPY_OPTIONS ('mergeSchema' = 'true')
 
 **Notebook:** `02_silver_layer`
 
+The Silver layer turns 13,717 raw bronze rows into 13,228 trusted silver rows. Bronze is never edited, so the original records are always available if anyone questions the cleanup.
+
+<p align="center">
+  <img src="docs/images/silver-data-quality-deduplication.png" alt="What silver removes from 13,717 bronze rows: 234 duplicated line ids and 259 rows with quantity -1 are dropped, statuses in two casings are normalized with LOWER(), leaving 13,228 silver_orders rows" width="850">
+</p>
+
 The Silver layer applies data quality remediation:
 
 1. **Status normalization** — The source system logs statuses in two casings (`completed`/`COMPLETED`, `cancelled`/`CANCELLED`, `returned`/`RETURNED`). Silver normalizes to lowercase.
@@ -242,6 +262,14 @@ stream = (spark.readStream
     .awaitTermination())
 ```
 
+### Incremental Processing with Checkpoints
+
+The Auto Loader checkpoint records every file it has already processed. In this project the first run loaded the 29 files that had landed (725 events); the second run picked up only the 31 new files (775 events). The result is 1,500 events in bronze with no duplicates, and the stream can be re-run at any time because every file lands exactly once.
+
+<p align="center">
+  <img src="docs/images/auto-loader-checkpoint-incremental.png" alt="Auto Loader checkpoint: run 1 loads all 29 files (725 events), run 2 loads only the 31 new files (775 events), producing a bronze table with 1,500 events and no duplicates" width="850">
+</p>
+
 ---
 
 ## Lakeflow Declarative Pipeline
@@ -286,14 +314,38 @@ A daily multi-task job that chains the batch pipeline notebooks:
 
 **Dashboard:** `ShopStream Sales`
 
-An AI/BI Lakeview dashboard with two datasets registered:
+An AI/BI Lakeview dashboard built on the Gold layer, showing revenue by product category and revenue by day for H1 2026.
+
+<p align="center">
+  <img src="docs/images/shopstream-sales-dashboard.png" alt="Published ShopStream Sales dashboard in Databricks showing a Revenue by Category bar chart and a Daily Revenue line chart" width="900">
+</p>
+
+### Revenue by Category
+
+A bar chart over `gold_category_performance` with `category` on the X axis and `SUM(revenue)` on the Y axis. `home-kitchen` leads, with every category landing roughly between $190K and $285K.
+
+<p align="center">
+  <img src="docs/images/revenue-by-category-chart.png" alt="Dashboard editor with the Revenue by Category bar chart selected, configured on gold_category_performance with category on the X axis and SUM(revenue) on the Y axis" width="900">
+</p>
+
+### Daily Revenue
+
+A line chart over `gold_daily_revenue` with `order_date` on the X axis and `SUM(revenue)` on the Y axis, showing daily revenue moving between roughly $5K and $19K from January to June 2026.
+
+<p align="center">
+  <img src="docs/images/daily-revenue-chart.png" alt="Dashboard editor showing the Daily Revenue line chart from January to June 2026 next to the Revenue by Category bar chart" width="900">
+</p>
+
+### Datasets
+
+The dashboard uses two datasets:
 
 | Dataset | Source Table |
 | --- | --- |
 | `gold_category_performance` | `shopstream.core.gold_category_performance` |
 | `gold_daily_revenue` | `shopstream.core.gold_daily_revenue` |
 
-> **Note:** The dashboard has datasets configured but **no visualizations (widgets) have been placed on the canvas yet**. The page exists with a GRID_V1 layout but contains no charts. To complete the dashboard, open it in the Databricks workspace and add widgets for each dataset.
+> **Note:** The exported [`dashboard/ShopStream_Sales.lvdash.json`](dashboard/ShopStream_Sales.lvdash.json) captures the dataset definitions only. The chart widgets shown above were built in the Databricks workspace after that export.
 
 ---
 
@@ -364,7 +416,7 @@ Contains streaming event data:
 | Lakeflow Spark Declarative Pipelines | Streaming pipeline with `@dlt.table` decorators |
 | Lakeflow Jobs | Multi-task job orchestration with dependencies |
 | Unity Catalog | Catalog, schema, table, and volume governance |
-| AI/BI Lakeview | Dashboard with dataset configuration |
+| AI/BI Lakeview | Sales dashboard with category and daily revenue charts |
 | Auto Loader | Incremental file ingestion with `cloudFiles` format |
 
 ---
@@ -460,11 +512,19 @@ shopstream-lakehouse/
 │   └── shopstream_lakeflow.json
 │
 ├── dashboard/
-│   └── ShopStream_Sales_dashboard.json
+│   └── ShopStream_Sales.lvdash.json
 │
 ├── docs/
 │   ├── architecture.md
-│   └── setup-guide.md
+│   ├── setup-guide.md
+│   └── images/
+│       ├── databricks-lakehouse-architecture.png
+│       ├── batch-and-streaming-architecture.png
+│       ├── silver-data-quality-deduplication.png
+│       ├── auto-loader-checkpoint-incremental.png
+│       ├── shopstream-sales-dashboard.png
+│       ├── revenue-by-category-chart.png
+│       └── daily-revenue-chart.png
 │
 └── data/
     └── README.md
