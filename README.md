@@ -312,40 +312,46 @@ A daily multi-task job that chains the batch pipeline notebooks:
 
 ## Dashboard
 
-**Dashboard:** `ShopStream Sales`
+**Dashboard:** `ShopStream Sales` (AI/BI Lakeview), exported as [`dashboard/ShopStream_Sales.lvdash.json`](dashboard/ShopStream_Sales.lvdash.json)
 
-An AI/BI Lakeview dashboard built on the Gold layer, showing revenue by product category and revenue by day for H1 2026.
-
-<p align="center">
-  <img src="docs/images/shopstream-sales-dashboard.png" alt="Published ShopStream Sales dashboard in Databricks showing a Revenue by Category bar chart and a Daily Revenue line chart" width="900">
-</p>
-
-### Revenue by Category
-
-A bar chart over `gold_category_performance` with `category` on the X axis and `SUM(revenue)` on the Y axis. `home-kitchen` leads, with every category landing roughly between $190K and $285K.
+A single-page executive view of completed orders for H1 2026, built only on the three Gold tables.
 
 <p align="center">
-  <img src="docs/images/revenue-by-category-chart.png" alt="Dashboard editor with the Revenue by Category bar chart selected, configured on gold_category_performance with category on the X axis and SUM(revenue) on the Y axis" width="900">
+  <img src="docs/images/shopstream-sales-dashboard.png" alt="ShopStream Sales dashboard in Databricks" width="900">
 </p>
 
-### Daily Revenue
+### Layout
 
-A line chart over `gold_daily_revenue` with `order_date` on the X axis and `SUM(revenue)` on the Y axis, showing daily revenue moving between roughly $5K and $19K from January to June 2026.
+| Section | Widgets | Gold table |
+| --- | --- | --- |
+| Filters | Order date (date range), Category (multi-select) | `gold_daily_revenue`, `gold_category_performance` |
+| KPI cards | Total Revenue, Total Orders, Units Sold, Avg Order Value | `gold_daily_revenue` |
+| KPI cards | Gross Margin, Gross Margin % | `gold_category_performance` |
+| Revenue Overview | Daily Revenue (line), Revenue by Category (bar) | `gold_daily_revenue`, `gold_category_performance` |
+| Category Performance | Revenue and Gross Margin by Category (grouped bar), Gross Margin % by Category (bar) | `gold_category_performance` |
+| Customer Analytics | Customers with Completed Orders, Avg Lifetime Revenue per Customer, Avg Lifetime Orders per Customer (cards); Top 10 Customers by Lifetime Revenue (bar); Avg Lifetime Revenue by Signup Channel (bar); Lifetime Revenue by Country (bar) | `gold_customer_ltv` |
 
-<p align="center">
-  <img src="docs/images/daily-revenue-chart.png" alt="Dashboard editor showing the Daily Revenue line chart from January to June 2026 next to the Revenue by Category bar chart" width="900">
-</p>
+Revenue and margin are formatted as USD, counts use thousands separators, and derived ratios (average order value, gross margin %) are computed from the Gold columns at query time (`SUM(revenue) / SUM(orders)`, `SUM(gross_margin) / SUM(revenue)`).
+
+### Filter scope
+
+The Gold tables are aggregated at different grains, so each filter only reaches the tables that carry its column:
+
+* **Order date** filters Total Revenue, Total Orders, Units Sold, Avg Order Value and Daily Revenue. `gold_category_performance` and `gold_customer_ltv` have no date column.
+* **Category** filters Gross Margin, Gross Margin % and the category charts. `gold_daily_revenue` and `gold_customer_ltv` have no category column.
 
 ### Datasets
 
-The dashboard uses two datasets:
-
 | Dataset | Source Table |
 | --- | --- |
-| `gold_category_performance` | `shopstream.core.gold_category_performance` |
-| `gold_daily_revenue` | `shopstream.core.gold_daily_revenue` |
+| `ds_daily_revenue` | `shopstream.core.gold_daily_revenue` |
+| `ds_category_performance` | `shopstream.core.gold_category_performance` |
+| `ds_customer_ltv` | `shopstream.core.gold_customer_ltv` |
+| `ds_top_customers` | `shopstream.core.gold_customer_ltv` (top 10 by `lifetime_revenue`) |
 
-> **Note:** The exported [`dashboard/ShopStream_Sales.lvdash.json`](dashboard/ShopStream_Sales.lvdash.json) captures the dataset definitions only. The chart widgets shown above were built in the Databricks workspace after that export.
+### Checking the numbers
+
+[`dashboard/kpi_checks.sql`](dashboard/kpi_checks.sql) recomputes every KPI card straight from the Gold tables and cross-checks revenue across all three, so the dashboard values can be verified in the SQL editor.
 
 ---
 
@@ -416,7 +422,7 @@ Contains streaming event data:
 | Lakeflow Spark Declarative Pipelines | Streaming pipeline with `@dlt.table` decorators |
 | Lakeflow Jobs | Multi-task job orchestration with dependencies |
 | Unity Catalog | Catalog, schema, table, and volume governance |
-| AI/BI Lakeview | Sales dashboard with category and daily revenue charts |
+| AI/BI Lakeview | Sales dashboard with KPI cards, revenue, category margin and customer LTV views |
 | Auto Loader | Incremental file ingestion with `cloudFiles` format |
 
 ---
@@ -512,7 +518,8 @@ shopstream-lakehouse/
 │   └── shopstream_lakeflow.json
 │
 ├── dashboard/
-│   └── ShopStream_Sales.lvdash.json
+│   ├── ShopStream_Sales.lvdash.json
+│   └── kpi_checks.sql
 │
 ├── docs/
 │   ├── architecture.md
